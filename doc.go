@@ -3,8 +3,8 @@ Package conf is a simple package to assist with writing flat
 configuration and other data to JSON files at an expected location
 safely being sure not overwrite any configuration file that has been
 updated since it was last written by the running program. This helps
-avoid contention between two runtimes that might be in contention for
-writes to the same file.
+avoid contention between two runtimes that might try to write to the
+same file.
 
 The JSON data is always saved as a one-dimensional, flat map of strings
 with concurrency-safe Get() and Set() methods. Depth may be achieved by
