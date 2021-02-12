@@ -51,7 +51,8 @@ func (jc *Config) Path() string {
 // pointer. First argument is the Dir path string, which will be
 // converted to an absolute path if passed a relative directory. Second
 // is File name.  Note that New() does not automatically load content
-// from Path(). Use Load() when needed instead. Panics if more than two
+// from Path() nor does it create a new configuration directory and
+// file. Use Load() when needed instead. Panics if more than two
 // arguments are passed.
 func New(args ...string) *Config {
 	var err error
@@ -134,12 +135,31 @@ func (jc *Config) SetForceSave(key string, val string) error {
 	return jc.ForceSave()
 }
 
+// Init replaces the Data from the current object with a new
+// map[string]string and creates new configuration file at Path()
+// containing nothing but updated meta data (data is empty) returning an
+// error if something goes wrong. WARNING: If a file already exists,
+// Init() will purge the data from the file.
+func (jc *Config) Init() error {
+	jc.Data = map[string]string{}
+	return jc.ForceSave()
+}
+
 // Load initializes the Config object with data freshly loaded from the
 // current Path() throwing away the internal reference to any previous
 // Data (which will be cleaned up with normal garbage collection). This
 // is useful for situations where reloading from the last Save() is
-// wanted.
+// wanted. If no configuration file exists, calling Load will initialize
+// a new one at the Path() location.
 func (jc *Config) Load() error {
+
+	if !exists(jc.Path()) {
+		err := jc.Init()
+		if err != nil {
+			return err
+		}
+	}
+
 	newjc, err := NewFromFile(jc.Path())
 	if err != nil {
 		return err
