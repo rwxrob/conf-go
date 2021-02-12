@@ -32,6 +32,9 @@ type Config struct {
 
 	// Save is set to the last time a save successfully completed.
 	Saved time.Time `json:"saved,omitempty"`
+
+	// Updated is set every time Set is called.
+	Updated time.Time `json:"updated,omitempty"`
 }
 
 // Path returns the absolute path to the configuration file. Returns
@@ -116,6 +119,7 @@ func (jc *Config) Set(key string, val string) {
 	jc.mu.Lock()
 	defer jc.mu.Unlock()
 	jc.Data[key] = val
+	jc.Updated = time.Now()
 }
 
 // SetSave calls Set() and then Save() as a convienience.
@@ -141,13 +145,16 @@ func (jc *Config) Load() error {
 		return err
 	}
 	jc.Data = newjc.Data
+	jc.Saved = newjc.Saved
+	jc.Updated = newjc.Updated
 	return nil
 }
 
-// Save checks the Saved time within file at Path() and refuses to
-// overwrite it if the current in-memory Saved time is older returning
-// a ErrorNewer. Creates any parent directories as needed along with
-// a new Path() file if one does not already exist.
+// Save checks the Saved time within file at Path() and compares it to
+// Updated refusing to overwrite the file if Updated is older than the
+// last save (which would create an over-written changes situation).
+// ErrorNewer is returned in such cases.  Creates any parent directories
+// as needed along with a new Path() file if one does not already exist.
 func (jc *Config) Save() error {
 	jc.mu.RLock()
 	defer jc.mu.RUnlock()
@@ -166,7 +173,7 @@ func (jc *Config) Save() error {
 		if err != nil {
 			return err
 		}
-		if !ondisk.Saved.IsZero() && ondisk.Saved.After(jc.Saved) {
+		if !ondisk.Saved.IsZero() && ondisk.Saved.After(jc.Updated) {
 			return ErrorNewer
 		}
 	}
