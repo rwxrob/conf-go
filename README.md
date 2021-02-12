@@ -10,7 +10,12 @@ Card](https://goreportcard.com/badge/github.com/rwxrob/conf-go)](https://gorepor
 [![Coverage](https://gocover.io/_badge/github.com/rwxrob/conf-go)](https://gocover.io/github.com/rwxrob/conf-go)
 -->
 
+"It's Redis without the Redis."
+
 ## Sample Example
 
 Beyond the testable examples a [sample](sample) has been included.
 
+## TODO
+
+* Complete full test cases
