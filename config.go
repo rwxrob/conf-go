@@ -236,7 +236,7 @@ func (jc Config) String() string {
 // without color).
 func (jc Config) PrettyPrint() {
 	_, max := jc.LongestKey()
-	tpl := fmt.Sprintf("%%%vv %%v\n", max)
+	tpl := fmt.Sprintf("%%%vv => %%v\n", max)
 	keys := jc.Keys()
 	sort.Strings(keys)
 	for _, k := range keys {
