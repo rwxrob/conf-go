@@ -150,9 +150,9 @@ func ExampleConfig_PrettyPrint() {
 	jc.PrettyPrint()
 	// Output:
 	// ------------
-	//       long long
-	// reallylong reallylong
-	//      short short
+	//       long => long
+	// reallylong => reallylong
+	//      short => short
 }
 
 /*
