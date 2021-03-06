@@ -39,7 +39,9 @@ func ExampleSet() {
 	jc.Set("name", "Mr. Rob")
 	fmt.Println(jc.Data)
 	// Output:
-	// {"name":"Mr. Rob"}
+	// {
+	//  "name": "Mr. Rob"
+	// }
 }
 
 func ExampleGet() {
@@ -88,9 +90,13 @@ func ExampleLoad() {
 	jc.Load()
 	fmt.Println(jc.Data)
 
-	// Output:
-	// {"Some":"Thing"}
-	// {"name":"Mr. Rob"}
+	// Unordered Output:
+	// {
+	//  "Some": "Thing"
+	// }
+	// {
+	//  "name": "Mr. Rob"
+	// }
 }
 
 func ExampleSave() {

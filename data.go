@@ -13,7 +13,7 @@ type Data map[string]string
 // compressed (no indents) JSON. Returns JSON containing just ERROR if
 // an error occurred during marshalling.
 func (d Data) String() string {
-	byt, err := json.Marshal(d)
+	byt, err := json.MarshalIndent(d, "", " ")
 	if err != nil {
 		return fmt.Sprintf("{\"ERROR\":\"%v\"}", err)
 	}

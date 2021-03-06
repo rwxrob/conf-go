@@ -225,7 +225,7 @@ func (jc *Config) ForceSave() error {
 // JSON string. Prints JSON with only ERROR if error occurred during
 // marshaling.
 func (jc Config) String() string {
-	byt, err := json.Marshal(jc)
+	byt, err := json.MarshalIndent(jc, "", " ")
 	if err != nil {
 		return fmt.Sprintf("{\"ERROR\":\"%v\"}", err)
 	}
