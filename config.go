@@ -153,13 +153,6 @@ func (jc *Config) Init() error {
 // a new one at the Path() location.
 func (jc *Config) Load() error {
 
-	if !exists(jc.Path()) {
-		err := jc.Init()
-		if err != nil {
-			return err
-		}
-	}
-
 	newjc, err := NewFromFile(jc.Path())
 	if err != nil {
 		return err
