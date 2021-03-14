@@ -1,4 +1,4 @@
-# Golang JSON Configuration Package Module
+# Simple, Stateful JSON Configs in Go
 
 [![GoDoc](https://godoc.org/github.com/rwxrob/conf-go?status.svg)](https://godoc.org/github.com/rwxrob/conf-go)
 [![License](https://img.shields.io/badge/license-Apache2-brightgreen.svg)](LICENSE)
@@ -8,10 +8,16 @@ Card](https://goreportcard.com/badge/github.com/rwxrob/conf-go)](https://gorepor
 
 "It's Redis without the Redis."
 
-## Sample Example
+## Examples 
 
-Beyond the testable examples a [sample](sample) has been included.
+The following projects use `conf-go` in different ways:
 
-## TODO
+Project|Description
+|:-:|-
+[`cmdtab-config`] | Access to convention JSON config data 
+[`cmdtab-pomo`] | Pomodoro countdown suitable for TMUX
+[`cmdtab-timer`] | Generic timer suitable for TMUX
+[`kn`] | KEG knowledge management utility
 
-* Complete full test cases
+[`config`]: https://github.com/rwxrob/cmdtab-config
+
