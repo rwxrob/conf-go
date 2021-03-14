@@ -37,11 +37,13 @@ func ConfigDir() string {
 		return filepath.Join(confdir, name)
 	}
 	confdir = filepath.Join(usr.HomeDir, ".config")
-	if exists(confdir) {
+	_, err = os.Stat(confdir)
+	if err == nil {
 		return filepath.Join(confdir, name)
 	}
 	dir := filepath.Join(usr.HomeDir, "."+name)
-	if exists(dir) {
+	_, err = os.Stat(dir)
+	if err == nil {
 		return dir
 	}
 	dir = filepath.Join(usr.HomeDir, ".config", name)
