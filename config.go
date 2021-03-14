@@ -9,8 +9,6 @@ import (
 	"sort"
 	"sync"
 	"time"
-
-	"github.com/rwxrob/cmdtab"
 )
 
 // Config encapsulates the Data structure and provides additional meta
@@ -52,9 +50,8 @@ func (jc *Config) Path() string {
 // New accepts up to three variadic arguments and returns a new Config
 // pointer. First argument is the Dir path string, which will be
 // converted to an absolute path if passed a relative directory. Second
-// is File name.  If the file or directory exists calling New() will
-// effectively be ignored and Load() will be called instead.
-// Panics if more than two arguments are passed.
+// is File name. If more than one parameter is passed a "too many
+// arguments" error is returned.
 func New(args ...string) (*Config, error) {
 	var err error
 	jc := new(Config)
@@ -74,22 +71,40 @@ func New(args ...string) (*Config, error) {
 		err = errors.New("too many arguments")
 	}
 
+	// return error anything wrong with path, file or args
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO detect existing and Load if found
-	// If not found create one with empty JSON map in it
+	// check if the file exists
+	_, err = os.Stat(jc.Path())
+	if err != nil {
 
-	return jc
+		// if can't determine, return error
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
+
+		// if sure not exists, create dir and path
+		jc.MkdirAll()
+		err = os.WriteFile(jc.Path(), []byte(jc.String()), 0600)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return jc, nil
 }
 
 // NewFromJSON will return a new Config pointer by setting its Data to
 // that which is Unmarshaled from a JSON byte array. The rest of the
 // arguments are the same as New().
 func NewFromJSON(jsn []byte, args ...string) (*Config, error) {
-	jc := New(args...)
-	err := json.Unmarshal(jsn, &jc)
+	jc, err := New(args...)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(jsn, &jc)
 	return jc, err
 }
 
@@ -171,30 +186,19 @@ func (jc *Config) Load() error {
 // Save checks the Saved time within file at Path() and compares it to
 // Updated refusing to overwrite the file if Updated is older than the
 // last save (which would create an over-written changes situation).
-// ErrorNewer is returned in such cases.  Creates any parent directories
-// as needed along with a new Path() file if one does not already exist.
+// ErrorNewer is returned in such cases. Save does not create any new
+// files assuming that such was done when New*() was called.
 func (jc *Config) Save() error {
 	jc.mu.RLock()
 	defer jc.mu.RUnlock()
 
-	// create the directory if it doesn't exist
-	// TODO rip this out, it should always exist
-	if !cmdtab.Found(jc.Dir) {
-		err := jc.MkdirAll()
-		if err != nil {
-			return err
-		}
+	// if saved is newer fail
+	ondisk, err := NewFromFile(jc.Path())
+	if err != nil {
+		return err
 	}
-
-	// if file exists and saved is newer fail
-	if exists(jc.Path()) {
-		ondisk, err := NewFromFile(jc.Path())
-		if err != nil {
-			return err
-		}
-		if !ondisk.Saved.IsZero() && ondisk.Saved.After(jc.Updated) {
-			return ErrorNewer
-		}
+	if !ondisk.Saved.IsZero() && ondisk.Saved.After(jc.Updated) {
+		return ErrorNewer
 	}
 
 	// save it
@@ -206,16 +210,6 @@ func (jc *Config) Save() error {
 func (jc *Config) ForceSave() error {
 	jc.mu.Lock()
 	defer jc.mu.Unlock()
-
-	// create the directory if it doesn't exist
-	if !exists(jc.Dir) {
-		err := jc.MkdirAll()
-		if err != nil {
-			return err
-		}
-	}
-
-	// save it
 	jc.Saved = time.Now()
 	return os.WriteFile(jc.Path(), []byte(jc.String()), 0600)
 }

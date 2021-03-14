@@ -12,16 +12,15 @@ import (
 // languages.
 var ErrorNewer = errors.New("Newer config file detected.")
 
-// ConfigDir looks for $XDG_CONFIG_HOME and if set looks within it to
-// resolve the path to the named configuration directory. If that
-// environment variable is not set will also look for the ~/.config
-// directory and do the same. If neither of these are present will look
-// for a directory beginning with a dot in the home directory itself. If
-// none of these are present, then a ~/.config directory will be created
-// within the home directory and a named directory created within it.
-// The name added to the directory path (once resolved) is the base name
-// of the current running executable (os.Executable()). Returns empty
-// string if any error is encountered.
+// ConfigDir first determines the name of the current executable.
+// Then it checks for the existence of any of the following (in order)
+// and returns if found:
+//
+//    $XDG_CONFIG_HOME/<name>/
+//    $HOME/.config/<name>/
+//    $HOME/.<name>/
+//
+// If none are found ~/.config/<name>/ will be returned.
 func ConfigDir() string {
 	name, err := os.Executable()
 	if err != nil {
