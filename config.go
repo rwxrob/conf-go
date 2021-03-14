@@ -9,6 +9,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/rwxrob/cmdtab"
 )
 
 // Config encapsulates the Data structure and provides additional meta
@@ -50,11 +52,10 @@ func (jc *Config) Path() string {
 // New accepts up to three variadic arguments and returns a new Config
 // pointer. First argument is the Dir path string, which will be
 // converted to an absolute path if passed a relative directory. Second
-// is File name.  Note that New() does not automatically load content
-// from Path() nor does it create a new configuration directory and
-// file. Use Load() when needed instead. Panics if more than two
-// arguments are passed.
-func New(args ...string) *Config {
+// is File name.  If the file or directory exists calling New() will
+// effectively be ignored and Load() will be called instead.
+// Panics if more than two arguments are passed.
+func New(args ...string) (*Config, error) {
 	var err error
 	jc := new(Config)
 	jc.Data = map[string]string{}
@@ -74,8 +75,12 @@ func New(args ...string) *Config {
 	}
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
+	// TODO detect existing and Load if found
+	// If not found create one with empty JSON map in it
+
 	return jc
 }
 
@@ -173,7 +178,8 @@ func (jc *Config) Save() error {
 	defer jc.mu.RUnlock()
 
 	// create the directory if it doesn't exist
-	if !exists(jc.Dir) {
+	// TODO rip this out, it should always exist
+	if !cmdtab.Found(jc.Dir) {
 		err := jc.MkdirAll()
 		if err != nil {
 			return err
