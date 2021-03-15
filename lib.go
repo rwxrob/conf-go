@@ -12,15 +12,21 @@ import (
 // languages.
 var ErrorNewer = errors.New("Newer config file detected.")
 
-// ConfigDir first determines the name of the current executable.
-// Then it checks for the existence of any of the following (in order)
-// and returns if found:
+// ConfigDir first determines the name of the current executable
+// (os.Executable()).  It then checks for the environment variable
+// $XDG_CONFIG_HOME and if set returns it with the name joined.
 //
-//    $XDG_CONFIG_HOME/<name>/
+// Then, the existence of any of the following are checked (in order)
+// and returned if found:
+//
 //    $HOME/.config/<name>/
 //    $HOME/.<name>/
 //
-// If none are found ~/.config/<name>/ will be returned.
+// If none are found $HOME/.config/<name>/ will be returned (whether or not
+// it exists).
+//
+// Note: $HOME is simply a visual indicator of usr.HomeDir and will not
+// always match the environment variable directly.
 func ConfigDir() string {
 	name, err := os.Executable()
 	if err != nil {
