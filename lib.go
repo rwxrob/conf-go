@@ -3,7 +3,6 @@ package conf
 import (
 	"errors"
 	"os"
-	"os/user"
 	"path/filepath"
 )
 
@@ -13,19 +12,19 @@ import (
 var ErrorNewer = errors.New("Newer config file detected.")
 
 // ConfigDir first determines the name of the current executable
-// (os.Executable()).  It then checks for the environment variable
-// $XDG_CONFIG_HOME and if set returns it with the name joined.
+// (os.Executable()).
 //
 // Then, the existence of any of the following are checked (in order)
 // and returned if found:
 //
+//    $XDG_CONFIG_HOME/<name>
 //    $HOME/.config/<name>/
 //    $HOME/.<name>/
 //
 // If none are found $HOME/.config/<name>/ will be returned (whether or not
 // it exists).
 //
-// Note: $HOME is simply a visual indicator of usr.HomeDir and will not
+// Note: $HOME is simply a visual indicator of os.UserHomeDir() and will not
 // always match the environment variable directly.
 func ConfigDir() string {
 	name, err := os.Executable()
@@ -33,24 +32,25 @@ func ConfigDir() string {
 		return ""
 	}
 	name = filepath.Base(name)
-	usr, err := user.Current()
+	confdir, err := os.UserConfigDir()
 	if err != nil {
 		return ""
 	}
-	confdir := os.Getenv("XDG_CONFIG_HOME")
-	if confdir != "" {
-		return filepath.Join(confdir, name)
-	}
-	confdir = filepath.Join(usr.HomeDir, ".config")
+	// checking if confdir exist because if $XDG_CONFIG_HOME does not exist
+	// then confdir will be == $HOME/.config and this folder might not exist
 	_, err = os.Stat(confdir)
 	if err == nil {
 		return filepath.Join(confdir, name)
 	}
-	dir := filepath.Join(usr.HomeDir, "."+name)
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	dir := filepath.Join(homedir, "."+name)
 	_, err = os.Stat(dir)
 	if err == nil {
 		return dir
 	}
-	dir = filepath.Join(usr.HomeDir, ".config", name)
+	dir = filepath.Join(homedir, ".config", name)
 	return dir
 }
