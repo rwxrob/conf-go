@@ -1,30 +1,22 @@
-# Simple, Stateful JSON Configs in Go
+# `conf-go` Lightweight Configuration Library 
 
-[![GoDoc](https://godoc.org/github.com/rwxrob/conf-go?status.svg)](https://godoc.org/github.com/rwxrob/conf-go)
+[![GoDoc](https://godoc.org/conf-go?status.svg)](https://godoc.org/conf-go)
 [![License](https://img.shields.io/badge/license-Apache2-brightgreen.svg)](LICENSE)
-[![Go Report
-Card](https://goreportcard.com/badge/github.com/rwxrob/conf-go)](https://goreportcard.com/report/github.com/rwxrob/conf-go)
 
-"It's Redis without the Redis."
+Rather than use JSON and fight with JSON map keys this library assumes
+one string configuration key and value pair per line. This not only
+simplifies the keys, but parses much more quickly than JSON and is
+compatible with traditional UNIX-style configuration parsing from shell
+scripts and the command line. In fact, it is exactly the same method
+used in the [`template-bash-command`][bash] allowing bash scripts and Go
+utilities using this package to be 100% compatible in their behavior.
 
-## Examples 
+[bash]: <https://github.com/rwxrob/template-bash-command>
 
-The following projects use `conf-go` in different ways:
+## Legal
 
-Project|Description
-|:-:|-
-[`cmdtab-config`] | Access to convention JSON config data 
-[`cmdtab-pomo`] | Pomodoro countdown suitable for TMUX
-[`cmdtab-timer`] | Generic timer suitable for TMUX
-[`kn`] | KEG knowledge management utility
+Copyright (c) 2021 Robert S. Muhlestein
+Released under the [Apache 2.0](LICENSE)
 
-[`config`]: https://github.com/rwxrob/cmdtab-config
-
-## Testing
-
-Given the nature of testing required for something that fundamentally
-depends on a user account home directory and the proper environment
-normal Go unit testing has been replaced with test cases to be executed
-by humans with the desired result (until, and if, a more suitable
-container-based test suite can be incorporated into this repo). The
-dependent [Examples](#examples) provide further opportunity for this testing.
+Contributors and project participants implicitly accept the 
+[Developer Certificate of Authenticity (DCO)](DCO).
