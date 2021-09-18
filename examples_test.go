@@ -30,3 +30,28 @@ func ExampleExeFile() {
 	// Output:
 	// /home/rwxrob/.config/conf-go.test/values
 }
+
+func ExampleMapStruct() {
+	m := conf.NewMap()
+	m.Set("foo", "FOO")
+	fmt.Println(m.Get("foo"))
+	m.Print()
+	fmt.Println(m.JSON())
+	m.PrintJSON()
+
+	// Output:
+	// FOO
+	// foo=FOO
+	// {"foo":"FOO"}
+	// {"foo":"FOO"}
+}
+
+func ExampleKeys() {
+	m := conf.NewMap()
+	m.Set("foo", "FOO")
+	m.Set("bar", "BAR")
+	fmt.Println(m.Keys())
+
+	// Output:
+	// [bar foo]
+}
