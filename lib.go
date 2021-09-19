@@ -21,7 +21,6 @@ func Home() string {
 // config directory named after the current executable binary.
 // Will return empty string if either home directory or current
 // executable name cannot be determined.
-//
 func Exe() string {
 	abspath, _ := os.Executable()
 	x := path.Base(abspath)
@@ -33,7 +32,7 @@ func Exe() string {
 }
 
 // ExeFile returns an absolute path to the specified file within the Exe
-// directory.
+// configuration directory. See Exe.
 func ExeFile(file string) string {
 	return path.Join(Exe(), file)
 }
