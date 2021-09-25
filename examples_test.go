@@ -7,6 +7,8 @@ import (
 	"github.com/rwxrob/conf-go"
 )
 
+// -------------------------- base functions --------------------------
+
 func ExampleHome() {
 	os.Setenv("HOME", "/home/rwxrob")
 	fmt.Println(conf.Home())
@@ -31,19 +33,7 @@ func ExampleExeDirFile() {
 	// /home/rwxrob/.config/conf-go.test/values
 }
 
-func ExampleNewMap() {
-	m := conf.NewMap()
-	m.Set("foo", "FOO")
-	fmt.Println(m.Get("foo"))
-	m.Print()
-	fmt.Println(m.JSON())
-	m.PrintJSON()
-	// Output:
-	// FOO
-	// foo=FOO
-	// {"foo":"FOO"}
-	// {"foo":"FOO"}
-}
+// --------------------------- Map interface --------------------------
 
 func ExampleMap_Keys() {
 	m := conf.NewMap()
@@ -60,6 +50,83 @@ func ExampleMap_String() {
 	fmt.Println(m)
 	// Output:
 	// foo=FOO
+}
+
+func ExampleMap_Name() {
+	m := conf.NewMap()
+	fmt.Println("Default executable name: " + m.Name())
+	m.SetName("foo")
+	fmt.Println(m.Name())
+	// Output:
+	// Default executable name: conf-go.test
+	// foo
+}
+
+// ----------------------- return *mapStruct/Map ----------------------
+
+func ExampleParse() {
+	m, err := conf.Parse([]byte("foo=FOO\r\nbar=BAR\n"))
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(m.Get("foo"))
+	fmt.Println(m.Get("bar"))
+	fmt.Println(m.Raw())
+	fmt.Println(m)
+	// Output:
+	// FOO
+	// BAR
+	// map[bar:BAR foo:FOO]
+	// bar=BAR
+	// foo=FOO
+}
+
+func ExampleParse_error_NoEqualSign() {
+	_, err := conf.Parse([]byte("foo FOO\n"))
+	if err != nil {
+		fmt.Println(err)
+	}
+	// Output:
+	// invalid config (line 1): foo FOO
+}
+
+func ExampleParse_unexpected_Key() {
+	m, err := conf.Parse([]byte("foo =FOO\n"))
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Printf("%q\n", m.Get("foo"))
+	fmt.Println(m.Raw())
+
+	// Output:
+	// ""
+	// map[foo :FOO]
+}
+
+func ExampleParse_unexpected_Val() {
+	m, err := conf.Parse([]byte("foo= FOO\n"))
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Printf("%q\n", m.Get("foo"))
+	fmt.Println(m.Raw())
+	// Output:
+	// " FOO"
+	// map[foo: FOO]
+}
+
+func ExampleNewMap() {
+	m := conf.NewMap()
+	m.Set("foo", "FOO")
+	fmt.Println(m.Get("foo"))
+	m.Print()
+	fmt.Println(m.JSON())
+	m.PrintJSON()
+	// Output:
+	// FOO
+	// foo=FOO
+	// {"foo":"FOO"}
+	// {"foo":"FOO"}
 }
 
 func ExampleWrite() {
@@ -94,60 +161,4 @@ func ExampleRead() {
 	// bar=BAR
 	// foo=FOO
 	// other=one
-}
-
-func ExampleParse() {
-	m, err := conf.Parse([]byte("foo=FOO\r\nbar=BAR\n"))
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Println(m.Get("foo"))
-	fmt.Println(m.Get("bar"))
-	fmt.Println(m.Raw())
-	fmt.Println(m)
-
-	// Output:
-	// FOO
-	// BAR
-	// map[bar:BAR foo:FOO]
-	// bar=BAR
-	// foo=FOO
-}
-
-func ExampleParse_error_NoEqualSign() {
-	_, err := conf.Parse([]byte("foo FOO\n"))
-	if err != nil {
-		fmt.Println(err)
-	}
-	// Output:
-	// invalid config (line 1): foo FOO
-}
-
-func ExampleParse_unexpected_Key() {
-	m, err := conf.Parse([]byte("foo =FOO\n"))
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Printf("%q\n", m.Get("foo"))
-	fmt.Println(m.Raw())
-
-	// Output:
-	// ""
-	// map[foo :FOO]
-}
-
-func ExampleParse_unexpected_Val() {
-	m, err := conf.Parse([]byte("foo= FOO\n"))
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Printf("%q\n", m.Get("foo"))
-	fmt.Println(m.Raw())
-
-	// Output:
-	// " FOO"
-	// map[foo: FOO]
 }

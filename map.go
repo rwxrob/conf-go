@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"sort"
 	"strings"
 	"sync"
@@ -49,6 +50,14 @@ type Mutex interface {
 	Unlock()
 }
 
+// Name implements a meta variable Name to uniquely identify one Map
+// from another. By default this value must be the base name of the
+// current os.Executable.
+type Name interface {
+	Name() string
+	SetName(n string)
+}
+
 // Map implements a conf.Map suitable for returning from NewMap. See the
 // individual (single-method) interface descriptions for details.
 //
@@ -57,6 +66,7 @@ type Mutex interface {
 // Raw returns the inner map[string]string for direct manipulation that
 // bypasses locking such as when ranging or sorting.
 type Map interface {
+	Name
 	Mutex
 	Getter
 	Setter
@@ -65,74 +75,19 @@ type Map interface {
 	Raw() map[string]string
 }
 
+// ----------------------------- mapStruct ----------------------------
+
 type mapStruct struct {
 	sync.Mutex
-	m map[string]string
+	name string
+	m    map[string]string
 }
 
-// NewMap returns a new struct that fulfills the Map interface and
-// embeds a sync.Mutex to fulfill the conf.Mutex interface. Eventually,
-// the Mutex implementation may be expanded to allow other processes to
-// observe the lock as well.
-func NewMap() *mapStruct {
-	m := new(mapStruct)
-	m.m = map[string]string{}
-	return m
-}
-
-// Parse constructs and returns a struct that fulfills the Map interface
-// from parsed bytes. The data being parsed must comply with the
-// requires for configuration data:
-//
-// * One configuration key=value pair per line
-// * Each line must contain an equal sign (=) delimiter
-// * Whitespace around equal delim is NOT ignored
-// * Lines must end with standard ending (\r?\n)
-// * Keys and values may be any string value (except line ending)
-// * Editable string keys and values are strongly recommended
-// * Empty lines will be ignored and overwritten (by Write, etc.)
-// * No support for comments
-//
-func Parse(b []byte) (*mapStruct, error) {
-	m := NewMap()
-	scanner := bufio.NewScanner(bytes.NewReader(b))
-	n := 1
-	for scanner.Scan() {
-		line := scanner.Text()
-		f := strings.Split(line, "=")
-		if len(f) != 2 {
-			return nil, fmt.Errorf("invalid config (line %v): %v\n", n, line)
-		}
-		m.m[f[0]] = f[1]
-		n++
-	}
-	return m, nil
-}
-
-// Read returns a new struct that fulfills Map interface by reading the
-// default location (see ExeDirFile passed "values").
-func Read() (*mapStruct, error) {
-	buf, err := os.ReadFile(ExeDirFile("values"))
-	if err != nil {
-		return nil, err
-	}
-	return Parse(buf)
-}
-
-// Write locks the Map and it to the default location (ExeDirFiles passed
-// "values" argument) with the default package permissions (see
-// WritePerms).
-func Write(m Map) error {
-	m.Lock()
-	defer m.Unlock()
-	err := os.MkdirAll(ExeDir(), DirPerms)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(ExeDirFile("values"), []byte(m.String()), WritePerms)
-}
-
+func (m *mapStruct) Name() string           { return m.name }
+func (m *mapStruct) SetName(s string)       { m.name = s }
 func (m *mapStruct) Raw() map[string]string { return m.m }
+func (m *mapStruct) Print()                 { fmt.Print(m) }
+func (m *mapStruct) PrintJSON()             { fmt.Println(m.JSON()) }
 
 func (m *mapStruct) Get(key string) string {
 	m.Lock()
@@ -172,5 +127,67 @@ func (m mapStruct) JSON() string {
 	return string(byt)
 }
 
-func (m mapStruct) Print()     { fmt.Print(m) }
-func (m mapStruct) PrintJSON() { fmt.Println(m.JSON()) }
+// ------------------------ Return *mapStruct ------------------------
+
+// NewMap returns a new struct that fulfills the Map interface and
+// embeds a sync.Mutex to fulfill the conf.Mutex interface. Eventually,
+// the Mutex implementation may be expanded to allow other processes to
+// observe the lock as well.
+func NewMap() *mapStruct {
+	m := new(mapStruct)
+	m.m = map[string]string{}
+	exe, _ := os.Executable()
+	m.name = path.Base(exe)
+	return m
+}
+
+// Parse constructs and returns a struct that fulfills the Map interface
+// from parsed bytes. The data being parsed must comply with the
+// requires for configuration data:
+//
+// * One configuration key=value pair per line
+// * Each line must contain an equal sign (=) delimiter
+// * Whitespace around equal delim is NOT ignored
+// * Lines must end with standard ending (\r?\n)
+// * Keys and values may be any string value (except line ending)
+// * Editable string keys and values are strongly recommended
+// * Empty lines will be ignored and overwritten (by Write, etc.)
+// * No support for comments
+func Parse(b []byte) (*mapStruct, error) {
+	m := NewMap()
+	scanner := bufio.NewScanner(bytes.NewReader(b))
+	n := 1
+	for scanner.Scan() {
+		line := scanner.Text()
+		f := strings.Split(line, "=")
+		if len(f) != 2 {
+			return nil, fmt.Errorf("invalid config (line %v): %v\n", n, line)
+		}
+		m.m[f[0]] = f[1]
+		n++
+	}
+	return m, nil
+}
+
+// Read returns a new struct that fulfills Map interface by reading the
+// default location (see ExeDirFile passed "values").
+func Read() (*mapStruct, error) {
+	buf, err := os.ReadFile(ExeDirFile("values"))
+	if err != nil {
+		return nil, err
+	}
+	return Parse(buf)
+}
+
+// Write locks the Map and it to the default location (ExeDirFiles passed
+// "values" argument) with the default package permissions (see
+// WritePerms).
+func Write(m Map) error {
+	m.Lock()
+	defer m.Unlock()
+	err := os.MkdirAll(ExeDir(), DirPerms)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(ExeDirFile("values"), []byte(m.String()), WritePerms)
+}
