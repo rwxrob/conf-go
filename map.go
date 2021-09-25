@@ -1,11 +1,13 @@
 package conf
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"sort"
+	"strings"
 	"sync"
 )
 
@@ -26,50 +28,6 @@ type Setter interface {
 	Set(key string, val string) error
 }
 
-// Reader is implemented by anything that takes an io.Reader and reads
-// from it return any error in the process. The data being read must
-// comply with the requires for configuration data:
-//
-// * One configuration key=value pair per line
-// * Each line must contain an equal sign (=) delimiter
-// * Whitespace around equal delim is NOT ignored
-// * Lines must end with scanner.ScanLine endings (\r?\n)
-// * Keys and value may be any string value (except line ending)
-// * Editable string keys and values are strongly recommended
-// * Empty lines will be ignored and overwritten (by Save, etc.)
-// * No support for comments
-//
-type Reader interface {
-	Read(r io.Reader) error
-}
-
-// Saver is implemented by anything that saves to a default or inferred
-// location (which must be the value returned by calling the ExeFile
-// function and passing it the "values" argument. Savers should use
-// a configurable way to set the write mask. See WritePerms and
-// DirPerms. See ExeDirFile for details. Calling ExeDirFile specifically,
-// however, is not required by this interface.)
-type Saver interface {
-	Save() error
-}
-
-// Loader is implemented by anything that loads from a default or
-// inferred location. See Saver interface for details.
-type Loader interface {
-	Load() error
-}
-
-// Editable is implemented by opening a configured or default editor set
-// by the user either usually as a configuration or environment variable
-// (such as EDITOR or VISUAL). Implementations will differ depending on
-// operating system supported. Implementations may decide to hand off
-// process control to the editor program in a way that does not return
-// control to the calling program (such as with UNIX/Linux exec). Please
-// make not of such in any implementation documentation.
-type Editable interface {
-	Edit() error
-}
-
 // JSONify implements a JSON method to return a string of valid JSON
 // (compressed or indented). If an error occurs it must be returned as
 // the ERROR key with the message as value in valid JSON.
@@ -82,19 +40,26 @@ type JSONify interface {
 	JSON() string
 }
 
+// Mutex implements a mutex with Lock and Unlock that should lock all
+// reads and writes while locked. Implementations may decide to limit
+// scope to same runtime memory space, or to extend to a system-level
+// scope that other external running processes can also observe.
+type Mutex interface {
+	Lock()
+	Unlock()
+}
+
 // Map implements a conf.Map suitable for returning from NewMap. See the
 // individual (single-method) interface descriptions for details.
 //
-// Stringer must be implemented as a Load/Save-able string.
+// Stringer must be implemented as a Parse-able string (see Parse).
 //
 // Raw returns the inner map[string]string for direct manipulation that
 // bypasses locking such as when ranging or sorting.
 type Map interface {
+	Mutex
 	Getter
 	Setter
-	Saver
-	Loader
-	Editable
 	JSONify
 	fmt.Stringer
 	Raw() map[string]string
@@ -106,11 +71,65 @@ type mapStruct struct {
 }
 
 // NewMap returns a new struct that fulfills the Map interface and
-// embeds a sync.RWMutex.
+// embeds a sync.Mutex to fulfill the conf.Mutex interface. Eventually,
+// the Mutex implementation may be expanded to allow other processes to
+// observe the lock as well.
 func NewMap() *mapStruct {
 	m := new(mapStruct)
 	m.m = map[string]string{}
 	return m
+}
+
+// Parse constructs and returns a struct that fulfills the Map interface
+// from parsed bytes. The data being parsed must comply with the
+// requires for configuration data:
+//
+// * One configuration key=value pair per line
+// * Each line must contain an equal sign (=) delimiter
+// * Whitespace around equal delim is NOT ignored
+// * Lines must end with standard ending (\r?\n)
+// * Keys and values may be any string value (except line ending)
+// * Editable string keys and values are strongly recommended
+// * Empty lines will be ignored and overwritten (by Write, etc.)
+// * No support for comments
+//
+func Parse(b []byte) (*mapStruct, error) {
+	m := NewMap()
+	scanner := bufio.NewScanner(bytes.NewReader(b))
+	n := 1
+	for scanner.Scan() {
+		line := scanner.Text()
+		f := strings.Split(line, "=")
+		if len(f) != 2 {
+			return nil, fmt.Errorf("invalid config (line %v): %v\n", n, line)
+		}
+		m.m[f[0]] = f[1]
+		n++
+	}
+	return m, nil
+}
+
+// Read returns a new struct that fulfills Map interface by reading the
+// default location (see ExeDirFile passed "values").
+func Read() (*mapStruct, error) {
+	buf, err := os.ReadFile(ExeDirFile("values"))
+	if err != nil {
+		return nil, err
+	}
+	return Parse(buf)
+}
+
+// Write locks the Map and it to the default location (ExeDirFiles passed
+// "values" argument) with the default package permissions (see
+// WritePerms).
+func Write(m Map) error {
+	m.Lock()
+	defer m.Unlock()
+	err := os.MkdirAll(ExeDir(), DirPerms)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(ExeDirFile("values"), []byte(m.String()), WritePerms)
 }
 
 func (m *mapStruct) Raw() map[string]string { return m.m }
@@ -125,40 +144,13 @@ func (m *mapStruct) Set(key, val string) error {
 	m.Lock()
 	m.m[key] = val
 	m.Unlock()
-	return m.Save()
-}
-
-func (m *mapStruct) Save() error {
-	m.Lock()
-	defer m.Unlock()
-	err := os.MkdirAll(ExeDir(), DirPerms)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(ExeDirFile("values"), []byte(m.String()), WritePerms)
-}
-
-func (m *mapStruct) Read(src io.Reader) error {
-	// TODO
-	return nil
-}
-
-func (m *mapStruct) Load() error {
-	// TODO read the implied ExeFile values
-	return nil
-}
-
-func (m *mapStruct) Edit() error {
-	// TODO
-	return nil
+	return Write(m)
 }
 
 func (m *mapStruct) Keys() []string {
-	keys := make([]string, len(m.m))
-	n := 0
+	keys := []string{}
 	for k, _ := range m.m {
-		keys[n] = k
-		n++
+		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 	return keys
