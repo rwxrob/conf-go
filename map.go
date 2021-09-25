@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"sync"
 )
@@ -18,10 +19,9 @@ type Getter interface {
 // periods, dashes, brackets, even emojis).  Set sets the value of key
 // to the string.
 //
-// Warning: use of line returns will *not* be escaped automatically and
-// will break other methods that depend on scan.ScanLine line endings.
-// This is to preserve the performance of a single character delimiter
-// per line without any additional overhead.
+// WARNING: use of line returns will *not* be escaped automatically and
+// will break the persistent file that contains the configuration
+// data unless you escape them yourself.
 type Setter interface {
 	Set(key string, val string) error
 }
@@ -45,9 +45,10 @@ type Reader interface {
 
 // Saver is implemented by anything that saves to a default or inferred
 // location (which must be the value returned by calling the ExeFile
-// function and passing it the "values" argument. See ExeFile for
-// details. Calling ExeFile specifically, however, is not required by
-// this interface.)
+// function and passing it the "values" argument. Savers should use
+// a configurable way to set the write mask. See WritePerms and
+// DirPerms. See ExeDirFile for details. Calling ExeDirFile specifically,
+// however, is not required by this interface.)
 type Saver interface {
 	Save() error
 }
@@ -100,7 +101,7 @@ type Map interface {
 }
 
 type mapStruct struct {
-	sync.RWMutex
+	sync.Mutex
 	m map[string]string
 }
 
@@ -115,22 +116,26 @@ func NewMap() *mapStruct {
 func (m *mapStruct) Raw() map[string]string { return m.m }
 
 func (m *mapStruct) Get(key string) string {
-	m.RLock()
-	defer m.RUnlock()
+	m.Lock()
+	defer m.Unlock()
 	return m.m[key]
 }
 
 func (m *mapStruct) Set(key, val string) error {
-	m.RLock()
-	defer m.RUnlock()
+	m.Lock()
 	m.m[key] = val
-	// TODO add line return escapes
+	m.Unlock()
 	return m.Save()
 }
 
 func (m *mapStruct) Save() error {
-	// TODO
-	return nil
+	m.Lock()
+	defer m.Unlock()
+	err := os.MkdirAll(ExeDir(), DirPerms)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(ExeDirFile("values"), []byte(m.String()), WritePerms)
 }
 
 func (m *mapStruct) Read(src io.Reader) error {

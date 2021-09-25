@@ -15,23 +15,23 @@ func ExampleHome() {
 	// /home/rwxrob/.config
 }
 
-func ExampleExe() {
+func ExampleExeDir() {
 	os.Setenv("HOME", "/home/rwxrob")
-	fmt.Println(conf.Exe())
+	fmt.Println(conf.ExeDir())
 
 	// Output:
 	// /home/rwxrob/.config/conf-go.test
 }
 
-func ExampleExeFile() {
+func ExampleExeDirFile() {
 	os.Setenv("HOME", "/home/rwxrob")
-	fmt.Println(conf.ExeFile("values"))
+	fmt.Println(conf.ExeDirFile("values"))
 
 	// Output:
 	// /home/rwxrob/.config/conf-go.test/values
 }
 
-func ExampleMapStruct() {
+func ExampleNewMap() {
 	m := conf.NewMap()
 	m.Set("foo", "FOO")
 	fmt.Println(m.Get("foo"))
@@ -54,4 +54,16 @@ func ExampleKeys() {
 
 	// Output:
 	// [bar foo]
+}
+
+func ExampleMap_Save() {
+	os.Setenv("HOME", "testdata")
+	m := conf.NewMap()
+	m.Set("foo", "FOO")
+	m.Save()
+	buf, _ := os.ReadFile("testdata/.config/conf-go.test/values")
+	fmt.Println(string(buf))
+
+	// Output:
+	// foo=FOO
 }
