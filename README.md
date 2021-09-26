@@ -1,15 +1,18 @@
-# `conf-go` Lightweight Configuration Library 
+# `conf-go`, a Lightweight, Persistent, Configuration Map
 
 [![GoDoc](https://godoc.org/conf-go?status.svg)](https://godoc.org/conf-go)
 [![License](https://img.shields.io/badge/license-Apache2-brightgreen.svg)](LICENSE)
 
-Rather than use JSON and fight with JSON map keys this library assumes
-one string configuration key and value pair per line. This not only
-simplifies the keys, but parses much more quickly than JSON and is
-compatible with traditional UNIX-style configuration parsing from shell
-scripts and the command line. In fact, it is exactly the same method
-used in the [`template-bash-command`][bash] allowing bash scripts and Go
-utilities using this package to be 100% compatible in their behavior.
+Rather than use JSON this library assumes one string configuration key
+and value pair per line. This not only simplifies the keys, but parses
+much more quickly than JSON and is compatible with traditional
+UNIX-style configuration parsing from shell scripts and the command line
+as well as full compatibility with Java Properties parsers. In fact, it
+is exactly the same method used in the [`template-bash-command`][bash]
+allowing bash scripts and Go utilities using this package to be 100%
+compatible in their behavior.
+
+Click on the GoDoc badge above for more information.
 
 [bash]: <https://github.com/rwxrob/template-bash-command>
 

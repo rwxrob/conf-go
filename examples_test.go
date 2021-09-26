@@ -178,6 +178,16 @@ func ExampleWrite() {
 	// foo=FOO
 }
 
+func ExampleWrite_bork() {
+	os.Setenv("HOME", "/bork")
+	m := conf.NewMap()
+	m.Set("foo", "FOO")
+	err := m.Write()
+	fmt.Println(err)
+	// Output:
+	// mkdir /bork: permission denied
+}
+
 func ExampleRead() {
 	os.Setenv("HOME", "testdata")
 	m := conf.NewMap()
@@ -194,4 +204,21 @@ func ExampleRead() {
 	// bar=BAR
 	// foo=FOO
 	// other=one
+}
+
+func ExampleRead_bork() {
+	os.Setenv("HOME", "bork")
+	m := conf.NewMap()
+	err := m.Read()
+	fmt.Println(err)
+	// Output:
+	// open bork/.config/conf-go.test/values: no such file or directory
+}
+
+func ExampleEscape() {
+	fmt.Printf("%q\n", conf.Escape("some\nthing"))
+	fmt.Printf("%q\n", conf.Escape("foo\r\nbar\n"))
+	// Output:
+	// "some\\nthing"
+	// "foo\\r\\nbar\\n"
 }
