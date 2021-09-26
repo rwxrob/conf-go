@@ -7,33 +7,45 @@ import (
 	"github.com/rwxrob/conf-go"
 )
 
-// -------------------------- base functions --------------------------
-
-func ExampleHome() {
+func ExampleNewMap() {
 	os.Setenv("HOME", "/home/rwxrob")
-	fmt.Println(conf.Home())
-
+	m := conf.NewMap()
+	m.Set("foo", "FOO")
+	fmt.Println(m.Get("foo"))
+	m.Print()
+	fmt.Println(m.JSON())
+	m.PrintJSON()
+	fmt.Println(m.Home())
+	fmt.Println(m.Name())
+	fmt.Println(m.File())
 	// Output:
+	// FOO
+	// foo=FOO
+	// {"foo":"FOO"}
+	// {"foo":"FOO"}
 	// /home/rwxrob/.config
+	// conf-go.test
+	// values
 }
 
-func ExampleExeDir() {
-	os.Setenv("HOME", "/home/rwxrob")
-	fmt.Println(conf.ExeDir())
-
+func ExampleNewMap_xdg_config_home() {
+	os.Setenv("XDG_CONFIG_HOME", "/tmp/config")
+	m := conf.NewMap()
+	fmt.Println(m.Path())
+	os.Unsetenv("XDG_CONFIG_HOME") // so other tests will work
 	// Output:
-	// /home/rwxrob/.config/conf-go.test
+	// /tmp/config/conf-go.test/values
 }
 
-func ExampleExeDirFile() {
-	os.Setenv("HOME", "/home/rwxrob")
-	fmt.Println(conf.ExeDirFile("values"))
-
+func ExampleMap_Raw() {
+	m := conf.NewMap()
+	fmt.Println(m.Raw())
+	m.Set("foo", "FOO")
+	fmt.Println(m.Raw())
 	// Output:
-	// /home/rwxrob/.config/conf-go.test/values
+	// map[]
+	// map[foo:FOO]
 }
-
-// --------------------------- Map interface --------------------------
 
 func ExampleMap_Keys() {
 	m := conf.NewMap()
@@ -52,20 +64,52 @@ func ExampleMap_String() {
 	// foo=FOO
 }
 
+func ExampleMap_Home() {
+	os.Setenv("HOME", "/home/rwxrob")
+	m := conf.NewMap()
+	fmt.Println("Default config home: " + m.Home())
+	os.Setenv("XDG_CONFIG_HOME", "/tmp/myxdg_config")
+	fmt.Println("Cached home: " + m.Home())
+	m.SetHome("/tmp/config")
+	fmt.Println("Changed home: " + m.Home())
+	os.Unsetenv("XDG_CONFIG_HOME") // so other tests will work
+	// Output:
+	// Default config home: /home/rwxrob/.config
+	// Cached home: /home/rwxrob/.config
+	// Changed home: /tmp/config
+}
+
 func ExampleMap_Name() {
 	m := conf.NewMap()
-	fmt.Println("Default executable name: " + m.Name())
+	fmt.Println("Default subdirectory name: " + m.Name())
 	m.SetName("foo")
 	fmt.Println(m.Name())
 	// Output:
-	// Default executable name: conf-go.test
+	// Default subdirectory name: conf-go.test
 	// foo
 }
 
-// ----------------------- return *mapStruct/Map ----------------------
+func ExampleMap_File() {
+	m := conf.NewMap()
+	fmt.Println("Default file: " + m.File())
+	m.SetFile("other")
+	fmt.Println(m.File())
+	// Output:
+	// Default file: values
+	// other
+}
+
+func ExampleMap_Path() {
+	os.Setenv("HOME", "/home/rwxrob")
+	m := conf.NewMap()
+	fmt.Println(m.Path())
+	// Output:
+	// /home/rwxrob/.config/conf-go.test/values
+}
 
 func ExampleParse() {
-	m, err := conf.Parse([]byte("foo=FOO\r\nbar=BAR\n"))
+	m := conf.NewMap()
+	err := m.Parse([]byte("foo=FOO\r\nbar=BAR\n"))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -82,7 +126,8 @@ func ExampleParse() {
 }
 
 func ExampleParse_error_NoEqualSign() {
-	_, err := conf.Parse([]byte("foo FOO\n"))
+	m := conf.NewMap()
+	err := m.Parse([]byte("foo FOO\n"))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -91,7 +136,8 @@ func ExampleParse_error_NoEqualSign() {
 }
 
 func ExampleParse_unexpected_Key() {
-	m, err := conf.Parse([]byte("foo =FOO\n"))
+	m := conf.NewMap()
+	err := m.Parse([]byte("foo =FOO\n"))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -104,7 +150,8 @@ func ExampleParse_unexpected_Key() {
 }
 
 func ExampleParse_unexpected_Val() {
-	m, err := conf.Parse([]byte("foo= FOO\n"))
+	m := conf.NewMap()
+	err := m.Parse([]byte("foo= FOO\n"))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -115,26 +162,12 @@ func ExampleParse_unexpected_Val() {
 	// map[foo: FOO]
 }
 
-func ExampleNewMap() {
-	m := conf.NewMap()
-	m.Set("foo", "FOO")
-	fmt.Println(m.Get("foo"))
-	m.Print()
-	fmt.Println(m.JSON())
-	m.PrintJSON()
-	// Output:
-	// FOO
-	// foo=FOO
-	// {"foo":"FOO"}
-	// {"foo":"FOO"}
-}
-
 func ExampleWrite() {
 	os.Setenv("HOME", "testdata")
 	m := conf.NewMap()
 	m.Set("foo", "FOO")
 	m.Set("bar", "BAR")
-	conf.Write(m)
+	m.Write()
 	buf, err := os.ReadFile("testdata/.config/conf-go.test/values")
 	if err != nil {
 		fmt.Println(err)
@@ -151,12 +184,12 @@ func ExampleRead() {
 	m.Set("foo", "FOO")
 	m.Set("bar", "BAR")
 	m.Set("other", "one")
-	conf.Write(m)
-	newm, err := conf.Read()
+	m.Write()
+	err := m.Read()
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(newm)
+	fmt.Println(m)
 	// Output:
 	// bar=BAR
 	// foo=FOO

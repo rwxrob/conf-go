@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"sort"
@@ -50,12 +51,61 @@ type Mutex interface {
 	Unlock()
 }
 
-// Name implements a meta variable Name to uniquely identify one Map
+// HasHome implements a meta variable Home to contain the full path to
+// the configuration home directory containing a subdirectory named
+// exactly to match HasName. By default this value must be the returned
+// value of os.UserConfigDir.
+type HasHome interface {
+	Home() string
+	SetHome(s string)
+}
+
+// HasName implements a meta variable Name to uniquely identify one Map
 // from another. By default this value must be the base name of the
 // current os.Executable.
-type Name interface {
+type HasName interface {
 	Name() string
-	SetName(n string)
+	SetName(s string)
+}
+
+// HasFile implements a meta variable File to contains the name of the
+// file within HasName subdirectory containing the key=value data.
+// The default must be 'values'.
+type HasFile interface {
+	File() string
+	SetFile(s string)
+}
+
+// Reader implements a Read method that reads and initializes the
+// internal struct from its default source (Map.Path in this case.)
+type Reader interface {
+	Read() error
+}
+
+// Writer implements a Write method that writes the internal struct
+// state to a default file location (Map.Path in this case).
+type Writer interface {
+	Write() error
+}
+
+// Parser implements a Parse method that parses data and adds the
+// key=value pairs to the internal struct from parsed bytes.
+// The Parse method must be additive and must overwrite any existing
+// values already set. It must not delete any existing values that are
+// not being overwritten. The data being parsed must comply with the
+// following requirements for configuration data:
+//
+// * One configuration key=value pair per line
+// * Each line must contain an equal sign (=) delimiter
+// * Whitespace around equal delim is NOT ignored
+// * Lines must end with standard ending (\r?\n)
+// * Keys and values may be any string value (except line ending)
+// * Editable string keys and values are strongly recommended
+// * Empty lines will be ignored and overwritten (by Write, etc.)
+// * No support for comments
+//
+type Parser interface {
+	Parse(b []byte) error
 }
 
 // Map implements a conf.Map suitable for returning from NewMap. See the
@@ -66,10 +116,15 @@ type Name interface {
 // Raw returns the inner map[string]string for direct manipulation that
 // bypasses locking such as when ranging or sorting.
 type Map interface {
-	Name
+	HasHome
+	HasName
+	HasFile
 	Mutex
 	Getter
 	Setter
+	Reader
+	Writer
+	Parser
 	JSONify
 	fmt.Stringer
 	Raw() map[string]string
@@ -79,15 +134,46 @@ type Map interface {
 
 type mapStruct struct {
 	sync.Mutex
+	home string
 	name string
+	file string
 	m    map[string]string
 }
 
+// NewMap returns a new struct that fulfills the Map interface and
+// embeds a sync.Mutex to fulfill the conf.Mutex interface. Eventually,
+// the Mutex implementation may be expanded to allow other processes to
+// observe the lock as well.
+func NewMap() *mapStruct {
+	var err error
+	m := new(mapStruct)
+	m.m = map[string]string{}
+	// m.Home()
+	m.home, err = os.UserConfigDir()
+	if err != nil {
+		log.Println(err)
+	}
+	// m.Name()
+	exe, _ := os.Executable()
+	m.name = path.Base(exe)
+	// m.File()
+	m.file = "values"
+	return m
+}
+
+func (m *mapStruct) Home() string           { return m.home }
+func (m *mapStruct) SetHome(s string)       { m.home = s }
 func (m *mapStruct) Name() string           { return m.name }
 func (m *mapStruct) SetName(s string)       { m.name = s }
+func (m *mapStruct) File() string           { return m.file }
+func (m *mapStruct) SetFile(s string)       { m.file = s }
 func (m *mapStruct) Raw() map[string]string { return m.m }
 func (m *mapStruct) Print()                 { fmt.Print(m) }
 func (m *mapStruct) PrintJSON()             { fmt.Println(m.JSON()) }
+
+func (m *mapStruct) Path() string {
+	return path.Join(m.home, m.name, m.file)
+}
 
 func (m *mapStruct) Get(key string) string {
 	m.Lock()
@@ -99,7 +185,7 @@ func (m *mapStruct) Set(key, val string) error {
 	m.Lock()
 	m.m[key] = val
 	m.Unlock()
-	return Write(m)
+	return m.Write()
 }
 
 func (m *mapStruct) Keys() []string {
@@ -127,67 +213,35 @@ func (m mapStruct) JSON() string {
 	return string(byt)
 }
 
-// ------------------------ Return *mapStruct ------------------------
-
-// NewMap returns a new struct that fulfills the Map interface and
-// embeds a sync.Mutex to fulfill the conf.Mutex interface. Eventually,
-// the Mutex implementation may be expanded to allow other processes to
-// observe the lock as well.
-func NewMap() *mapStruct {
-	m := new(mapStruct)
-	m.m = map[string]string{}
-	exe, _ := os.Executable()
-	m.name = path.Base(exe)
-	return m
+func (m *mapStruct) Read() error {
+	buf, err := os.ReadFile(m.Path())
+	if err != nil {
+		return err
+	}
+	return m.Parse(buf)
 }
 
-// Parse constructs and returns a struct that fulfills the Map interface
-// from parsed bytes. The data being parsed must comply with the
-// requires for configuration data:
-//
-// * One configuration key=value pair per line
-// * Each line must contain an equal sign (=) delimiter
-// * Whitespace around equal delim is NOT ignored
-// * Lines must end with standard ending (\r?\n)
-// * Keys and values may be any string value (except line ending)
-// * Editable string keys and values are strongly recommended
-// * Empty lines will be ignored and overwritten (by Write, etc.)
-// * No support for comments
-func Parse(b []byte) (*mapStruct, error) {
-	m := NewMap()
+func (m *mapStruct) Write() error {
+	m.Lock()
+	defer m.Unlock()
+	err := os.MkdirAll(path.Join(m.home, m.name), DirPerms)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(m.Path(), []byte(m.String()), WritePerms)
+}
+
+func (m *mapStruct) Parse(b []byte) error {
 	scanner := bufio.NewScanner(bytes.NewReader(b))
 	n := 1
 	for scanner.Scan() {
 		line := scanner.Text()
 		f := strings.Split(line, "=")
 		if len(f) != 2 {
-			return nil, fmt.Errorf("invalid config (line %v): %v\n", n, line)
+			return fmt.Errorf("invalid config (line %v): %v\n", n, line)
 		}
 		m.m[f[0]] = f[1]
 		n++
 	}
-	return m, nil
-}
-
-// Read returns a new struct that fulfills Map interface by reading the
-// default location (see ExeDirFile passed "values").
-func Read() (*mapStruct, error) {
-	buf, err := os.ReadFile(ExeDirFile("values"))
-	if err != nil {
-		return nil, err
-	}
-	return Parse(buf)
-}
-
-// Write locks the Map and it to the default location (ExeDirFiles passed
-// "values" argument) with the default package permissions (see
-// WritePerms).
-func Write(m Map) error {
-	m.Lock()
-	defer m.Unlock()
-	err := os.MkdirAll(ExeDir(), DirPerms)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(ExeDirFile("values"), []byte(m.String()), WritePerms)
+	return nil
 }
