@@ -10,6 +10,7 @@ import (
 func ExampleNewMap() {
 	os.Setenv("HOME", "/home/rwxrob")
 	m := conf.NewMap()
+	fmt.Printf("%q\n", m.Get("foo"))
 	m.Set("foo", "FOO")
 	fmt.Println(m.Get("foo"))
 	m.Print()
@@ -19,6 +20,7 @@ func ExampleNewMap() {
 	fmt.Println(m.Name())
 	fmt.Println(m.File())
 	// Output:
+	// ""
 	// FOO
 	// foo=FOO
 	// {"foo":"FOO"}

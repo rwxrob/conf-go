@@ -112,8 +112,8 @@ type Parser interface {
 
 // Editor implements an Edit method that will detect the best command
 // line editor available and pass the full path to the configuration
-// file (see Path). Normally, implementations takes the following
-// priorities on UNIX-type systems:
+// file (see Path). All implementations must first look within for an
+// EDITOR key, followed by the EDITOR and VISUAL environment variables.
 //
 //     Map.Get("EDITOR")
 //     os.Getenv("EDITOR")
@@ -162,13 +162,11 @@ type mapStruct struct {
 // its internal map and then look for the EDITOR and VISUAL environment
 // variables (as is traditional on UNIX-based systems). The lookup of
 // the map key allows configurations to persist the preferred editor for
-// that specific configuration and file. Calling the Edit method on
-// UNIX-based systems does not return but hands off the currently
-// running processes through the unix.Exec system call.
+// that specific configuration and file.
 //
-// The struct returns embeds a sync.Mutex to fulfill the conf.Mutex
+// The returned struct embeds a sync.Mutex to fulfill the Mutex
 // interface. Eventually, the Mutex implementation may be expanded to
-// allow other processes to observe the lock as well.
+// allow other external processes to observe the lock as well.
 //
 func NewMap() *mapStruct {
 	var err error
@@ -204,8 +202,10 @@ func (m *mapStruct) Path() string {
 func (m *mapStruct) Get(key string) string {
 	m.Lock()
 	defer m.Unlock()
-	// TODO check for key existence
-	return m.m[key]
+	if v, has := m.m[key]; has {
+		return v
+	}
+	return ""
 }
 
 func (m *mapStruct) Set(key, val string) error {
