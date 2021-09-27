@@ -2,7 +2,7 @@
 
 "It's Redis without the Redis."
 
-[![GoDoc](https://godoc.org/conf-go?status.svg)](https://godoc.org/conf-go)
+[![GoDoc](https://pkg.go.dev/github.com/rwxrob/conf-go?status.svg)](https://pkg.go.dev/github.com/rwxrob/conf-go)
 [![License](https://img.shields.io/badge/license-Apache2-brightgreen.svg)](LICENSE)
 
 > ⚠️
