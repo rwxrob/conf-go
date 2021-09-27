@@ -2,8 +2,12 @@
 
 "It's Redis without the Redis."
 
-[![GoDoc](https://pkg.go.dev/github.com/rwxrob/conf-go?status.svg)](https://pkg.go.dev/github.com/rwxrob/conf-go)
+![WIP](https://img.shields.io/badge/status-wip-red.svg)
+[![GoDoc](https://godoc.org/github.com/rwxrob/conf-go?status.svg)](https://godoc.org/github.com/rwxrob/conf-go)
 [![License](https://img.shields.io/badge/license-Apache2-brightgreen.svg)](LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rwxrob/conf-go)](https://goreportcard.com/report/github.com/rwxrob/conf-go)
+[![Coverage](https://gocover.io/_badge/github.com/rwxrob/conf-go)](https://gocover.io/github.com/rwxrob/conf-go)
+
 
 > ⚠️
 > A previous version of this package (with the same name) was based on
