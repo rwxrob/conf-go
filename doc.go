@@ -1,4 +1,6 @@
-/* Package conf provided a simple, persistable configuration map that is
+/*
+
+Package conf provided a simple, persistable configuration map that is
 safe for concurrency and parses much more efficiently than JSON or YAML
 for simple key=value data. It provides reasonable defaults based on
 existing standards and allows some flexibility in how configuration data
