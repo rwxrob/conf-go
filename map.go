@@ -97,14 +97,14 @@ type Writer interface {
 // not being overwritten. The data being parsed must comply with the
 // following requirements for configuration data:
 //
-// * One configuration key=value pair per line
-// * Each line must contain an equal sign (=) delimiter
-// * Whitespace around equal delim is NOT ignored
-// * Lines must end with standard ending (\r?\n)
-// * Keys and values may be any string value (except line ending)
-// * Editable string keys and values are strongly recommended
-// * Empty lines will be ignored and overwritten (by Write, etc.)
-// * No support for comments
+//     * One configuration key=value pair per line
+//     * Each line must contain an equal sign (=) delimiter
+//     * Whitespace around equal delim is NOT ignored
+//     * Lines must end with standard ending (\r?\n)
+//     * Keys and values may be any string value (except line ending)
+//     * Editable string keys and values are strongly recommended
+//     * Empty lines will be ignored and overwritten (by Write, etc.)
+//     * No support for comments
 //
 type Parser interface {
 	Parse(b []byte) error
