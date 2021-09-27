@@ -1,32 +1,43 @@
 /* Package conf provided a simple, persistable configuration map that is
-safe for concurrency and parses much more effectively than JSON or YAML
+safe for concurrency and parses much more efficiently than JSON or YAML
 for simple key=value data. It provides reasonable defaults based on
 existing standards and allows some flexibility in how configuration data
-is organized under these standards (notable XDG_CONFIG_HOME).
+is organized under these standards (notably XDG_CONFIG_HOME).
 
-When a new Map is returns from NewMap it saves the current information
-about itself within its cached metadata (which can be changed later).
+The Map interface is composed of several smaller interfaces to
+facilitate documentation and extensibility. This allows the
+implementation of structs that fulfill the Map interface in whatever way
+makes sense for a given application.
 
-The default Home configuration directory is that returned by
+A default Map reference implementation is provided by the NewMap
+function. When a new Map is returned from NewMap it saves the current
+information about itself within its cached metadata (which can be
+changed later). This includes the Home, Name, and File.
+
+The default Home configuration directory is the value of
 os.UserConfigDir (a well recognized standard that observes HOME if set).
 
 The default Name associated with a Map is the name of the
 os.Executable itself. This Name matches the name of the subdirectory
 within the home configuration directory.
 
-The File is the name of the file within the subdirectory associated with
-Name. The canonical default file name is "values". Multiple Maps can
-have different files with the same Name allowing them to effectively be
-grouped under the same configuration subdirectory.
+The default File name is the string "values". Multiple Maps can have
+different files with the same Name allowing them to be grouped under the
+same configuration subdirectory.
 
-The values file format is 100% compatible with the Java properties
-specification enabling other parsers to be used when necessary. The
-format is, however, a very limited subset of the full Java properties
-specification. This makes for easy splitting using simple bash parameter
-expansion and other split methods from any language. There is no need
-for complicated escaping. Everything is verbatim. However, no actual
-line return is allowed as a key or value (but can be used if escaped
-before being saved using something like the Escape utility function).
+Values File Format
+
+The values file format is simply one key=value pair per line with
+a simple equal sign delimiter. (See the Parse interface for a more
+detailed description.) This format can be easily handled by most any
+simple scripting language and is 100% compatible with the Java
+properties specification. When line and carriage returns are expected
+the Escape utility function can be used before setting any key or value.
+
+Editing
+
+Files can be edited directly with any text editor. The Edit method will
+also pass the Map.Path to any editor accessible from the command line.
 
 */
 package conf

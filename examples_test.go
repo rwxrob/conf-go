@@ -107,7 +107,7 @@ func ExampleMap_Path() {
 	// /home/rwxrob/.config/conf-go.test/values
 }
 
-func ExampleParse() {
+func ExampleMap_Parse() {
 	m := conf.NewMap()
 	err := m.Parse([]byte("foo=FOO\r\nbar=BAR\n"))
 	if err != nil {
@@ -125,7 +125,7 @@ func ExampleParse() {
 	// foo=FOO
 }
 
-func ExampleParse_error_NoEqualSign() {
+func ExampleMap_Parse_error_NoEqualSign() {
 	m := conf.NewMap()
 	err := m.Parse([]byte("foo FOO\n"))
 	if err != nil {
@@ -135,7 +135,7 @@ func ExampleParse_error_NoEqualSign() {
 	// invalid config (line 1): foo FOO
 }
 
-func ExampleParse_unexpected_Key() {
+func ExampleMap_Parse_unexpected_Key() {
 	m := conf.NewMap()
 	err := m.Parse([]byte("foo =FOO\n"))
 	if err != nil {
@@ -149,7 +149,7 @@ func ExampleParse_unexpected_Key() {
 	// map[foo :FOO]
 }
 
-func ExampleParse_unexpected_Val() {
+func ExampleMap_Parse_unexpected_Val() {
 	m := conf.NewMap()
 	err := m.Parse([]byte("foo= FOO\n"))
 	if err != nil {
@@ -162,7 +162,7 @@ func ExampleParse_unexpected_Val() {
 	// map[foo: FOO]
 }
 
-func ExampleWrite() {
+func ExampleMap_Write() {
 	os.Setenv("HOME", "testdata")
 	m := conf.NewMap()
 	m.Set("foo", "FOO")
@@ -178,7 +178,7 @@ func ExampleWrite() {
 	// foo=FOO
 }
 
-func ExampleWrite_bork() {
+func ExampleMap_Write_bork() {
 	os.Setenv("HOME", "/bork")
 	m := conf.NewMap()
 	m.Set("foo", "FOO")
@@ -188,7 +188,7 @@ func ExampleWrite_bork() {
 	// mkdir /bork: permission denied
 }
 
-func ExampleRead() {
+func ExampleMap_Read() {
 	os.Setenv("HOME", "testdata")
 	m := conf.NewMap()
 	m.Set("foo", "FOO")
@@ -206,7 +206,7 @@ func ExampleRead() {
 	// other=one
 }
 
-func ExampleRead_bork() {
+func ExampleMap_Read_bork() {
 	os.Setenv("HOME", "bork")
 	m := conf.NewMap()
 	err := m.Read()
@@ -215,10 +215,16 @@ func ExampleRead_bork() {
 	// open bork/.config/conf-go.test/values: no such file or directory
 }
 
-func ExampleEscape() {
+func ExampleMap_Escape() {
 	fmt.Printf("%q\n", conf.Escape("some\nthing"))
 	fmt.Printf("%q\n", conf.Escape("foo\r\nbar\n"))
 	// Output:
 	// "some\\nthing"
 	// "foo\\r\\nbar\\n"
+}
+
+func ExampleMap_Edit() {
+	os.Setenv("HOME", "/home/rwxrob")
+	m := conf.NewMap()
+	m.Edit() // would edit /home/rwxrob/.config/values
 }

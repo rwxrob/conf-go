@@ -7,13 +7,15 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path"
 	"sort"
 	"strings"
 	"sync"
 )
 
-// Getter is implemented by anything with a string value to return.
+// Getter is implemented by anything with a string value to return. If
+// the key does not exist an empty string must be returned.
 type Getter interface {
 	Get(key string) string
 }
@@ -108,6 +110,19 @@ type Parser interface {
 	Parse(b []byte) error
 }
 
+// Editor implements an Edit method that will detect the best command
+// line editor available and pass the full path to the configuration
+// file (see Path). Normally, implementations takes the following
+// priorities on UNIX-type systems:
+//
+//     Map.Get("EDITOR")
+//     os.Getenv("EDITOR")
+//     os.Getenv("VISUAL")
+//
+type Editor interface {
+	Edit() error
+}
+
 // Map implements a conf.Map suitable for returning from NewMap. See the
 // individual (single-method) interface descriptions for details.
 //
@@ -125,6 +140,7 @@ type Map interface {
 	Reader
 	Writer
 	Parser
+	Editor
 	JSONify
 	fmt.Stringer
 	Raw() map[string]string
@@ -140,10 +156,20 @@ type mapStruct struct {
 	m    map[string]string
 }
 
-// NewMap returns a new struct that fulfills the Map interface and
-// embeds a sync.Mutex to fulfill the conf.Mutex interface. Eventually,
-// the Mutex implementation may be expanded to allow other processes to
-// observe the lock as well.
+// NewMap returns a new struct that fulfills the Map interface.
+//
+// The Edit method implemented will first look for an EDITOR key within
+// its internal map and then look for the EDITOR and VISUAL environment
+// variables (as is traditional on UNIX-based systems). The lookup of
+// the map key allows configurations to persist the preferred editor for
+// that specific configuration and file. Calling the Edit method on
+// UNIX-based systems does not return but hands off the currently
+// running processes through the unix.Exec system call.
+//
+// The struct returns embeds a sync.Mutex to fulfill the conf.Mutex
+// interface. Eventually, the Mutex implementation may be expanded to
+// allow other processes to observe the lock as well.
+//
 func NewMap() *mapStruct {
 	var err error
 	m := new(mapStruct)
@@ -178,6 +204,7 @@ func (m *mapStruct) Path() string {
 func (m *mapStruct) Get(key string) string {
 	m.Lock()
 	defer m.Unlock()
+	// TODO check for key existence
 	return m.m[key]
 }
 
@@ -244,4 +271,40 @@ func (m *mapStruct) Parse(b []byte) error {
 		n++
 	}
 	return nil
+}
+
+func (m *mapStruct) getEditor() string {
+	e := m.Get("EDITOR")
+	if e != "" {
+		return e
+	}
+	e = os.Getenv("EDITOR")
+	if e != "" {
+		return e
+	}
+	e = os.Getenv("VISUAL")
+	if e != "" {
+		return e
+	}
+	path, err := exec.LookPath("vi")
+	if err != nil {
+		return path
+	}
+	return ""
+}
+
+func (m *mapStruct) Edit() error {
+	editor := m.getEditor()
+	if editor == "" {
+		return fmt.Errorf("unable to detemine editor")
+	}
+	path, err := exec.LookPath(editor)
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(path, m.Path())
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
