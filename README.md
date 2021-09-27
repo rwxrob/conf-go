@@ -1,7 +1,13 @@
-# `conf-go`, a Lightweight, Persistent, Configuration Map
+# Simple, Persistent, Configuration Maps in Go
+
+"It's Redis without the Redis."
 
 [![GoDoc](https://godoc.org/conf-go?status.svg)](https://godoc.org/conf-go)
 [![License](https://img.shields.io/badge/license-Apache2-brightgreen.svg)](LICENSE)
+
+> ⚠️
+> A previous version of this package (with the same name) was based on
+> a JSON approach. This version breaks from the JSON dependency.
 
 Rather than use JSON this library assumes one string configuration key
 and value pair per line. This not only simplifies the keys, but parses
