@@ -203,6 +203,10 @@ func (m *mapStruct) Raw() map[string]string { return m.m }
 func (m *mapStruct) Print()                 { fmt.Print(m) }
 func (m *mapStruct) PrintJSON()             { fmt.Println(m.JSON()) }
 
+func (m *mapStruct) Dir() string {
+	return path.Join(m.home, m.name)
+}
+
 func (m *mapStruct) Path() string {
 	return path.Join(m.home, m.name, m.file)
 }
