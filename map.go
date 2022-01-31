@@ -110,6 +110,13 @@ type Parser interface {
 	Parse(b []byte) error
 }
 
+// Deleter implements a Delete method that removes a given key=value
+// pair from the internal struct and persists it. Deleter is a no-op,
+// meaning it doesn't return anything. It either deletes it or not.
+type Deleter interface {
+	Delete(key string)
+}
+
 // Editor implements an Edit method that will detect the best command
 // line editor available and pass the full path to the configuration
 // file (see Path). All implementations must first look within for an
@@ -137,6 +144,7 @@ type Map interface {
 	Mutex
 	Getter
 	Setter
+	Deleter
 	Reader
 	Writer
 	Parser
@@ -213,6 +221,12 @@ func (m *mapStruct) Set(key, val string) error {
 	m.m[key] = val
 	m.Unlock()
 	return m.Write()
+}
+
+func (m *mapStruct) Delete(key string) {
+	m.Lock()
+	delete(m.m, key)
+	m.Unlock()
 }
 
 func (m *mapStruct) Keys() []string {
@@ -296,7 +310,7 @@ func (m *mapStruct) getEditor() string {
 func (m *mapStruct) Edit() error {
 	editor := m.getEditor()
 	if editor == "" {
-		return fmt.Errorf("unable to detemine editor")
+		return fmt.Errorf("unable to determine editor")
 	}
 	path, err := exec.LookPath(editor)
 	if err != nil {
