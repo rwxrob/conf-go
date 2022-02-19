@@ -212,6 +212,7 @@ func (m *mapStruct) Path() string {
 }
 
 func (m *mapStruct) Get(key string) string {
+	m.Read()
 	m.Lock()
 	defer m.Unlock()
 	if v, has := m.m[key]; has {
@@ -221,6 +222,7 @@ func (m *mapStruct) Get(key string) string {
 }
 
 func (m *mapStruct) Set(key, val string) error {
+	m.Read()
 	m.Lock()
 	m.m[key] = val
 	m.Unlock()
@@ -229,8 +231,8 @@ func (m *mapStruct) Set(key, val string) error {
 
 func (m *mapStruct) Delete(key string) {
 	m.Lock()
+	defer m.Unlock()
 	delete(m.m, key)
-	m.Unlock()
 }
 
 func (m *mapStruct) Keys() []string {
