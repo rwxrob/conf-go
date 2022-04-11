@@ -1,5 +1,9 @@
 # Simple, Persistent, Configuration Maps in Go
 
+***DEPRECATED:*** This module is no longer maintained and inferior to
+the new [conf](https://github.com/rwxrob/conf) and
+[vars](https://github.com/rwxrob/vars) Bonzai branches.
+
 "It's Redis without the Redis."
 
 [![GoDoc](https://godoc.org/github.com/rwxrob/conf-go?status.svg)](https://godoc.org/github.com/rwxrob/conf-go)
